@@ -1,0 +1,433 @@
+:root {
+  font-family: 'Inter', system-ui, sans-serif;
+  --bg-color: #050505;
+  --card-bg: #101010;
+  --text-primary: #ffffff;
+  --highlight-hue: 260deg; /* Purple/Blue Sync */
+}
+
+body {
+  margin: 0;
+  background-color: var(--bg-color);
+  color: var(--text-primary);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 40px 20px;
+  position: relative;
+  z-index: 1;
+}
+
+/* --- DASHBOARD GRID --- */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 400px 1fr; /* Sidebar | Map */
+  gap: 40px;
+  margin-top: 40px;
+}
+
+@media (max-width: 1000px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* --- THE NEON CARD --- */
+.card {
+  background: rgba(16, 16, 16, 0.8);
+  backdrop-filter: blur(10px); /* Glass effect */
+  border-radius: 20px;
+  padding: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 0 40px rgba(0,0,0,0.5);
+  position: relative;
+  overflow: visible; /* CRITICAL: Allows dropdowns to spill out */
+}
+
+/* --- TYPOGRAPHY --- */
+h1 {
+  text-align: center;
+  font-weight: 800;
+  font-size: 3rem;
+  letter-spacing: -2px;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  background: linear-gradient(to bottom, #fff, #a099d8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 20px rgba(160, 153, 216, 0.5));
+}
+
+h2 {
+  font-size: 1.2rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: #a099d8;
+  margin-bottom: 30px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 10px;
+}
+
+/* --- MAP FIX --- */
+.leaflet-container {
+  width: 100%;
+  height: 600px;
+  border-radius: 15px;
+  background: #000;
+  box-shadow: inset 0 0 20px #000;
+  z-index: 0;
+}
+
+/* =========================================
+   COMPONENT 1: THE GLOWING INPUT (Neon)
+   ========================================= */
+.input-group {
+  position: relative;
+  margin-bottom: 25px;
+  width: 100%;
+  z-index: 1; /* Default Layer */
+}
+
+/* !!! THE FIX !!! 
+   When hovering or focusing this group, bring it to the FRONT 
+   so the dropdown floats OVER the next input. */
+.input-group:hover,
+.input-group:focus-within {
+  z-index: 100;
+}
+
+.input-container {
+  position: relative;
+  width: 100%;
+  height: 60px;
+  display: flex;
+  align-items: center;
+}
+
+.input {
+  background-color: #010201;
+  border: none;
+  width: 100%;
+  height: 56px;
+  border-radius: 10px;
+  color: white;
+  padding-inline: 20px;
+  font-size: 16px;
+  z-index: 10;
+  position: relative;
+}
+
+.input:focus { outline: none; }
+.input::placeholder { color: #c0b9c0; }
+
+/* The Glow Layers */
+.glow-layer {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  border-radius: 12px;
+  pointer-events: none;
+  z-index: 1;
+  overflow: hidden;
+}
+
+.white, .border, .darkBorderBg, .glow {
+  max-height: 70px;
+  max-width: 100%;
+  height: 100%;
+  width: 100%;
+  position: absolute;
+  overflow: hidden;
+  z-index: -1;
+  border-radius: 12px;
+  filter: blur(3px);
+}
+
+.white::before {
+  content: "";
+  z-index: -2;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%) rotate(83deg);
+  position: absolute;
+  width: 600px; height: 600px;
+  background-image: conic-gradient(rgba(0,0,0,0) 0%, #a099d8, rgba(0,0,0,0) 8%, rgba(0,0,0,0) 50%, #dfa2da, rgba(0,0,0,0) 58%);
+  transition: all 2s;
+}
+
+.border::before {
+  content: "";
+  z-index: -2;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%) rotate(70deg);
+  position: absolute;
+  width: 600px; height: 600px;
+  background-image: conic-gradient(#1c191c, #402fb5 5%, #1c191c 14%, #1c191c 50%, #cf30aa 60%, #1c191c 64%);
+  transition: all 2s;
+}
+
+.darkBorderBg::before {
+  content: "";
+  z-index: -2;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%) rotate(82deg);
+  position: absolute;
+  width: 600px; height: 600px;
+  background-image: conic-gradient(rgba(0,0,0,0), #18116a, rgba(0,0,0,0) 10%, rgba(0,0,0,0) 50%, #6e1b60, rgba(0,0,0,0) 60%);
+  transition: all 2s;
+}
+
+.glow::before {
+  content: "";
+  z-index: -2;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%) rotate(60deg);
+  position: absolute;
+  width: 999px; height: 999px;
+  background-image: conic-gradient(#000, #402fb5 5%, #000 38%, #000 50%, #cf30aa 60%, #000 87%);
+  transition: all 2s;
+}
+
+/* Hover Effects for Glow */
+.input-container:hover .darkBorderBg::before { transform: translate(-50%, -50%) rotate(-98deg); }
+.input-container:hover .glow::before { transform: translate(-50%, -50%) rotate(-120deg); }
+.input-container:hover .white::before { transform: translate(-50%, -50%) rotate(-97deg); }
+.input-container:hover .border::before { transform: translate(-50%, -50%) rotate(-110deg); }
+
+.input-container:focus-within .darkBorderBg::before { transform: translate(-50%, -50%) rotate(442deg); transition: all 4s; }
+.input-container:focus-within .glow::before { transform: translate(-50%, -50%) rotate(420deg); transition: all 4s; }
+.input-container:focus-within .white::before { transform: translate(-50%, -50%) rotate(443deg); transition: all 4s; }
+.input-container:focus-within .border::before { transform: translate(-50%, -50%) rotate(430deg); transition: all 4s; }
+
+
+/* =========================================
+   COMPONENT 2: THE SIMPLE SLIDER
+   ========================================= */
+.simple-slider-wrapper {
+  --slider-width: 100%;
+  --slider-height: 6px;
+  --slider-bg: #333;       /* Dark Grey Track */
+  --slider-border-radius: 999px;
+  --level-color: #a099d8;  /* Theme Purple */
+  --level-transition-duration: .1s;
+  
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  margin-top: 5px;
+  margin-bottom: 25px; 
+}
+
+.simple-slider-wrapper .level {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  width: var(--slider-width);
+  height: var(--slider-height);
+  background: var(--slider-bg);
+  overflow: hidden;
+  border-radius: var(--slider-border-radius);
+  transition: height var(--level-transition-duration);
+  cursor: inherit;
+  outline: none;
+}
+
+.simple-slider-wrapper .level::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 0;
+  height: 0;
+  box-shadow: -1000px 0 0 1000px var(--level-color);
+}
+
+.simple-slider-wrapper:hover .level {
+  height: 12px;
+}
+
+
+/* =========================================
+   COMPONENT 3: THE GLASS BUTTON
+   ========================================= */
+.btn-wrapper {
+  position: relative;
+  display: block;
+  width: 100%;
+  margin-top: 30px;
+}
+
+.btn {
+  --border-radius: 24px;
+  --padding: 4px;
+  --transition: 0.4s;
+  --button-color: #101010;
+  --highlight-color-hue: 260deg;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 1em;
+  font-family: inherit;
+  font-size: 1.1em;
+  font-weight: 600;
+  background-color: var(--button-color);
+  color: white;
+  border: solid 1px rgba(255,255,255,0.1);
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: all var(--transition);
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+}
+
+.btn::before {
+  content: "";
+  position: absolute;
+  top: -4px; left: -4px;
+  width: calc(100% + 8px); height: calc(100% + 8px);
+  border-radius: 28px;
+  z-index: -1;
+  background-image: linear-gradient(0deg, #0004, #000a);
+  transition: all 0.4s;
+}
+
+.btn::after {
+  content: "";
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  border-radius: inherit;
+  background-image: linear-gradient(0deg, #fff, hsl(var(--highlight-color-hue), 100%, 70%), transparent);
+  opacity: 0;
+  transition: opacity 0.4s;
+}
+
+.btn:hover { border-color: hsl(var(--highlight-color-hue), 100%, 70%); }
+.btn:hover::after { opacity: 0.2; }
+
+.btn-letter {
+  position: relative;
+  display: inline-block;
+  color: rgba(255,255,255,0.5);
+  transition: color 0.4s;
+}
+
+.btn:hover .btn-letter {
+  color: #fff;
+  text-shadow: 0 0 5px hsl(var(--highlight-color-hue), 100%, 80%);
+}
+
+.btn:hover .btn-letter:nth-child(1) { transition-delay: 0s; }
+.btn:hover .btn-letter:nth-child(2) { transition-delay: 0.05s; }
+.btn:hover .btn-letter:nth-child(3) { transition-delay: 0.1s; }
+.btn:hover .btn-letter:nth-child(4) { transition-delay: 0.15s; }
+.btn:hover .btn-letter:nth-child(5) { transition-delay: 0.2s; }
+.btn:hover .btn-letter:nth-child(6) { transition-delay: 0.25s; }
+.btn:hover .btn-letter:nth-child(7) { transition-delay: 0.3s; }
+.btn:hover .btn-letter:nth-child(8) { transition-delay: 0.35s; }
+.btn:hover .btn-letter:nth-child(9) { transition-delay: 0.4s; }
+.btn:hover .btn-letter:nth-child(10) { transition-delay: 0.45s; }
+.btn:hover .btn-letter:nth-child(11) { transition-delay: 0.5s; }
+.btn:hover .btn-letter:nth-child(12) { transition-delay: 0.55s; }
+
+/* Score Circle */
+.score-circle {
+  width: 150px; height: 150px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  margin: 30px auto;
+  font-size: 3.5rem;
+  font-weight: 800;
+  color: white;
+  border: 4px solid rgba(255,255,255,0.1);
+  box-shadow: 0 0 30px currentColor;
+  text-shadow: 0 0 10px currentColor;
+}
+
+
+/* =========================================
+   COMPONENT 4: CUSTOM DROPDOWN (Uiverse)
+   ========================================= */
+.select {
+  width: 100%;
+  cursor: pointer;
+  position: relative;
+  transition: 300ms;
+  color: white;
+  margin-bottom: 25px;
+}
+
+.selected {
+  background-color: #010201;
+  padding: 15px 20px;
+  border-radius: 10px;
+  margin-bottom: 3px;
+  position: relative;
+  z-index: 1000;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+.arrow {
+  position: relative;
+  height: 10px;
+  transform: rotate(-90deg);
+  width: 25px;
+  fill: white;
+  z-index: 1000;
+  transition: 300ms;
+}
+
+.options {
+  display: flex;
+  flex-direction: column;
+  border-radius: 10px;
+  padding: 5px;
+  /* Solid Background to Fix Transparency Issues */
+  background-color: #1a1a1a; 
+  position: absolute; 
+  top: 50px;          
+  left: 0;
+  width: 100%;        
+  opacity: 0;
+  visibility: hidden; 
+  transition: 200ms ease-in-out;
+  z-index: 2000;
+  border: 1px solid rgba(255,255,255,0.1);
+  box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+}
+
+.select:hover > .options {
+  opacity: 1;
+  visibility: visible;
+  top: 100%; 
+}
+
+.select:hover > .selected .arrow {
+  transform: rotate(0deg);
+}
+
+.option {
+  border-radius: 5px;
+  padding: 12px 15px;
+  transition: 300ms;
+  background-color: transparent;
+  width: 100%;
+  box-sizing: border-box;
+  font-size: 15px;
+  color: #c0b9c0;
+}
+
+.option:hover {
+  background-color: #323741;
+  color: white;
+}
+
+.options input[type="radio"] {
+  display: none;
+}
