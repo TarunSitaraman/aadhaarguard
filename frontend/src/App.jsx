@@ -16,10 +16,16 @@ let DefaultIcon = L.icon({
 L.Marker.prototype.options.icon = DefaultIcon;
 
 // --- DEPLOYMENT URL CONFIG ---
-// If VITE_API_URL is set (by Vercel), use it. Otherwise use localhost.
 const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 
 const formatText = (text) => text ? text.toString().replace(/_/g, ' ') : "";
+
+// --- INDIA BOUNDS (The "Cage") ---
+// This defines the Southwest and Northeast corners of the viewable area.
+const INDIA_BOUNDS = [
+  [6.0, 68.0],   // South West (Indian Ocean)
+  [37.5, 97.5]   // North East (Arunachal/China Border)
+];
 
 // --- COMPONENTS ---
 const NeonInput = ({ label, type = "text", name, value, onChange, options = null, min, max }) => {
@@ -78,7 +84,7 @@ const GlassButton = ({ text, onClick }) => {
 const OptimizedMapLayer = ({ points }) => {
   const map = useMap();
   const layerRef = useRef(null);
-  const rendererRef = useRef(L.canvas({ padding: 0.5 })); // Shared Canvas Renderer
+  const rendererRef = useRef(L.canvas({ padding: 0.5 }));
 
   useEffect(() => {
     if (!map || !points.length) return;
@@ -92,16 +98,15 @@ const OptimizedMapLayer = ({ points }) => {
       layer.clearLayers();
       
       const zoom = map.getZoom();
-      const isZoomedOut = zoom < 6; // Filter Logic
+      const isZoomedOut = zoom < 6;
 
       const markers = [];
       points.forEach(pt => {
-        // IF ZOOMED OUT: Skip Green/Yellow, only show Red
         if (isZoomedOut && pt.health_score >= 40) return;
 
-        let color = '#22c55e'; // Green
-        if (pt.health_score < 40) color = '#ef4444'; // Red
-        else if (pt.health_score < 70) color = '#eab308'; // Yellow
+        let color = '#22c55e';
+        if (pt.health_score < 40) color = '#ef4444';
+        else if (pt.health_score < 70) color = '#eab308';
 
         const marker = L.circleMarker([pt.latitude, pt.longitude], {
           renderer: rendererRef.current,
@@ -110,7 +115,7 @@ const OptimizedMapLayer = ({ points }) => {
           fillColor: color,
           fillOpacity: 0.8,
           stroke: false, 
-          interactive: false // CRITICAL FOR PERFORMANCE
+          interactive: false 
         });
         markers.push(marker);
       });
@@ -149,7 +154,6 @@ function App() {
   const districts = Object.keys(districtCoords);
   const occupations = ['Farmer', 'Construction', 'Student', 'IT_Professional'];
 
-  // Fetch Data using dynamic API_URL
   useEffect(() => {
     axios.get(`${API_URL}/map_data`)
       .then(res => setMapPoints(res.data))
@@ -200,11 +204,15 @@ function App() {
         </div>
 
         <div className="card" style={{ padding: 0, overflow: 'hidden', background: '#101010', backdropFilter: 'none' }}>
+          {/* UPDATED MAP CONTAINER */}
           <MapContainer 
             center={[22.5937, 78.9629]} 
-            zoom={5} 
+            zoom={5}
+            minZoom={5}              // Prevent zooming out to world view
+            maxBounds={INDIA_BOUNDS} // Restrict panning
+            maxBoundsViscosity={1.0} // Hard bounce on edges
             scrollWheelZoom={true} 
-            preferCanvas={true} // Essential
+            preferCanvas={true} 
             style={{ height: "100%", width: "100%", background: '#000' }}
           >
             <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" attribution='&copy; CARTO' />
