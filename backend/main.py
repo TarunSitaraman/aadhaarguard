@@ -5,10 +5,17 @@ import joblib
 import pandas as pd
 import os
 import sys
-from backend.sms_manager import send_sms_nudge 
+
+# IMPORT SMS MANAGER (Ensure this file exists or comment out if not using)
+try:
+    from backend.sms_manager import send_sms_nudge 
+except ImportError:
+    # Fallback if sms_manager.py is missing
+    def send_sms_nudge(*args): return False
 
 app = FastAPI(title="Aadhaar Health-Score API")
 
+# CORS - ALLOW ALL (Safe for Hackathon/Demo)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -28,8 +35,9 @@ try:
     artifacts = joblib.load(model_path)
     model = artifacts['model']
     encoders = artifacts['encoders']
-    print("✅ Model loaded.")
-except FileNotFoundError:
+    print("✅ Model loaded successfully!")
+except Exception as e:
+    print(f"❌ Error loading model: {e}")
     model = None
 
 class CitizenData(BaseModel):
@@ -39,9 +47,13 @@ class CitizenData(BaseModel):
     occupation: str
     gender: str
 
+@app.get("/")
+def home():
+    return {"message": "Aadhaar Guard API is Running"}
+
 @app.post("/predict_health_score")
 def predict_health(data: CitizenData):
-    if not model: raise HTTPException(status_code=500, detail="Model missing")
+    if not model: raise HTTPException(status_code=500, detail="Model not loaded")
     try:
         input_data = pd.DataFrame([{
             'age': data.age, 'days_since_update': data.days_since_update,
@@ -74,14 +86,12 @@ def predict_health(data: CitizenData):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# --- NEW ENDPOINT: SERVE ALL 10K POINTS ---
 @app.get("/map_data")
 def get_map_data():
     if not os.path.exists(data_path): return []
     try:
         df = pd.read_csv(data_path)
-        # Only send what we need for the map to keep it fast
-        # We limit to 5000 points if 10k is too slow, but let's try 10k first.
+        # Return only essential columns to keep payload small
         map_df = df[['latitude', 'longitude', 'health_score', 'district']]
         return map_df.to_dict(orient="records")
     except Exception as e:

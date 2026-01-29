@@ -14,10 +14,10 @@ DATA_DIR = os.path.join(PROJECT_ROOT, 'data')
 OUTPUT_FILE = os.path.join(DATA_DIR, "aadhaar_synthetic_data.csv")
 os.makedirs(DATA_DIR, exist_ok=True)
 
-# --- CHANGED TO 5000 FOR BETTER PERFORMANCE ---
+# LIMIT TO 5000 FOR STABILITY
 NUM_RECORDS = 5000
 
-# SIMPLIFIED INDIA BORDER POLYGON
+# INDIA BORDER POLYGON (Simplified)
 INDIA_POLYGON = [
     (35.5, 74.0), (34.5, 76.5), (32.0, 78.5), (31.0, 79.0), 
     (29.5, 80.5), (28.0, 81.0), (27.0, 84.0), (27.5, 88.0), 
@@ -28,16 +28,13 @@ INDIA_POLYGON = [
     (26.0, 70.0), (28.0, 71.0), (30.0, 72.5), (32.5, 74.0) 
 ]
 
-# STRATEGY: FULL COVERAGE MESH
+# REGIONAL ZONES
 REGIONS = {
-    # --- CORE ZONES ---
     'North_District':   {'lat': 28.6139, 'lng': 77.2090, 'rad': 450}, 
     'South_Tech_Hub':   {'lat': 12.9716, 'lng': 77.5946, 'rad': 400}, 
     'East_Industrial':  {'lat': 22.5726, 'lng': 88.3639, 'rad': 400}, 
     'West_Rural':       {'lat': 19.0760, 'lng': 72.8777, 'rad': 350}, 
     'Central_Metro':    {'lat': 23.2599, 'lng': 77.4126, 'rad': 450}, 
-    
-    # --- BRIDGE ZONES ---
     'Deccan_Plateau':   {'lat': 17.3850, 'lng': 78.4867, 'rad': 350, 'map_to': 'South_Tech_Hub'},
     'Gangetic_Plain':   {'lat': 25.3176, 'lng': 82.9739, 'rad': 400, 'map_to': 'North_District'},
     'Rajasthan_Desert': {'lat': 26.2389, 'lng': 73.0243, 'rad': 350, 'map_to': 'West_Rural'},
@@ -45,8 +42,6 @@ REGIONS = {
     'Northeast_Hills':  {'lat': 26.1445, 'lng': 91.7362, 'rad': 300, 'map_to': 'East_Industrial'},
     'Gujarat_Coast':    {'lat': 22.2587, 'lng': 71.1924, 'rad': 300, 'map_to': 'West_Rural'},
     'Kashmir_Valley':   {'lat': 34.0837, 'lng': 74.7973, 'rad': 200, 'map_to': 'North_District'},
-
-    # --- FILLER ZONES ---
     'Central_Gap':      {'lat': 21.1458, 'lng': 79.0882, 'rad': 300, 'map_to': 'Central_Metro'}, 
     'South_Gap':        {'lat': 15.8281, 'lng': 75.9000, 'rad': 250, 'map_to': 'South_Tech_Hub'}, 
     'West_Gap':         {'lat': 20.5937, 'lng': 78.9629, 'rad': 300, 'map_to': 'West_Rural'},     
@@ -86,12 +81,11 @@ def get_valid_geo_point(base_lat, base_lng, base_rad):
         new_lat = base_lat + x
         new_lng = base_lng + (y / np.cos(np.radians(base_lat)))
         
-        # Check if valid
         if is_point_in_india(new_lat, new_lng):
             return round(new_lat, 6), round(new_lng, 6)
 
 def generate_synthetic_data(n):
-    print(f"Generating {n} records (Performance Optimized)...")
+    print(f"Generating {n} optimized records...")
     data = []
     region_keys = list(REGIONS.keys())
     
@@ -100,7 +94,6 @@ def generate_synthetic_data(n):
         region_data = REGIONS[r_key]
         
         district_name = region_data.get('map_to', r_key)
-        
         lat, lng = get_valid_geo_point(region_data['lat'], region_data['lng'], region_data['rad'])
         
         gender = random.choice(['Male', 'Female', 'Other'])
@@ -114,7 +107,7 @@ def generate_synthetic_data(n):
         days_since_update = random.randint(10, 3650) 
         last_update_date = datetime.now() - timedelta(days=days_since_update)
         
-        # Math
+        # Math & Logic
         raw_decay = days_since_update * 0.012
         if age > 50: age_factor = 1 + ((age - 50)**2 / 3000) 
         elif age < 12: age_factor = 1 + ((12 - age)**2 / 800)
@@ -124,6 +117,7 @@ def generate_synthetic_data(n):
         if occupation in ['Farmer', 'Construction']: occ_factor = 1.4
         elif occupation in ['Small_Business', 'Retired']: occ_factor = 1.15
             
+        # Chaos Factor (More Red Dots)
         chaos = 0
         if random.random() < 0.15:
             chaos = random.randint(15, 30)

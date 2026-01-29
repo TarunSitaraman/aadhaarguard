@@ -15,6 +15,10 @@ let DefaultIcon = L.icon({
 });
 L.Marker.prototype.options.icon = DefaultIcon;
 
+// --- DEPLOYMENT URL CONFIG ---
+// If VITE_API_URL is set (by Vercel), use it. Otherwise use localhost.
+const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+
 const formatText = (text) => text ? text.toString().replace(/_/g, ' ') : "";
 
 // --- COMPONENTS ---
@@ -70,14 +74,11 @@ const GlassButton = ({ text, onClick }) => {
   return (<div className="btn-wrapper"><button className="btn" onClick={onClick}>{letters}</button></div>);
 };
 
-// --- STABILITY FIX: SHARED RENDERER LAYER ---
+// --- OPTIMIZED MAP LAYER ---
 const OptimizedMapLayer = ({ points }) => {
   const map = useMap();
   const layerRef = useRef(null);
-  
-  // 1. Create ONE single Canvas renderer for all 5000 points.
-  // This prevents creating 5000 separate canvas contexts.
-  const rendererRef = useRef(L.canvas({ padding: 0.5 }));
+  const rendererRef = useRef(L.canvas({ padding: 0.5 })); // Shared Canvas Renderer
 
   useEffect(() => {
     if (!map || !points.length) return;
@@ -91,46 +92,37 @@ const OptimizedMapLayer = ({ points }) => {
       layer.clearLayers();
       
       const zoom = map.getZoom();
-      const isZoomedOut = zoom < 6;
+      const isZoomedOut = zoom < 6; // Filter Logic
 
-      // Batch create markers
       const markers = [];
-      
       points.forEach(pt => {
-        // FILTERING: Don't render "Safe" dots if zoomed out
+        // IF ZOOMED OUT: Skip Green/Yellow, only show Red
         if (isZoomedOut && pt.health_score >= 40) return;
 
-        let color = '#22c55e'; 
-        if (pt.health_score < 40) color = '#ef4444'; 
-        else if (pt.health_score < 70) color = '#eab308'; 
+        let color = '#22c55e'; // Green
+        if (pt.health_score < 40) color = '#ef4444'; // Red
+        else if (pt.health_score < 70) color = '#eab308'; // Yellow
 
         const marker = L.circleMarker([pt.latitude, pt.longitude], {
-          renderer: rendererRef.current, // USE SHARED RENDERER
+          renderer: rendererRef.current,
           radius: 2,
           color: color,
           fillColor: color,
           fillOpacity: 0.8,
-          stroke: false, // No border = faster
-          interactive: false // CRITICAL: Disables mouse events (saves massive memory)
+          stroke: false, 
+          interactive: false // CRITICAL FOR PERFORMANCE
         });
         markers.push(marker);
       });
 
-      // Add all at once
       if (markers.length > 0) {
         L.layerGroup(markers).addTo(layer);
       }
     };
 
-    // Initial Draw
     drawPoints();
 
-    // 2. DEBOUNCE ZOOM: Wait for zoom to FINISH before redrawing
-    // This prevents the "Black Screen" crash during animation
-    const onZoomEnd = () => {
-      requestAnimationFrame(drawPoints);
-    };
-
+    const onZoomEnd = () => requestAnimationFrame(drawPoints);
     map.on('zoomend', onZoomEnd);
 
     return () => {
@@ -157,9 +149,9 @@ function App() {
   const districts = Object.keys(districtCoords);
   const occupations = ['Farmer', 'Construction', 'Student', 'IT_Professional'];
 
-  // Fetch Data
+  // Fetch Data using dynamic API_URL
   useEffect(() => {
-    axios.get('http://127.0.0.1:8000/map_data')
+    axios.get(`${API_URL}/map_data`)
       .then(res => setMapPoints(res.data))
       .catch(err => console.error("Error fetching map points:", err));
   }, []);
@@ -168,9 +160,9 @@ function App() {
 
   const checkHealth = async () => {
     try {
-      const response = await axios.post('http://127.0.0.1:8000/predict_health_score', formData);
+      const response = await axios.post(`${API_URL}/predict_health_score`, formData);
       setResult(response.data);
-    } catch (error) { alert("Backend error"); }
+    } catch (error) { alert("Backend error. Is the server running?"); }
   };
 
   const getColor = (score) => {
@@ -212,12 +204,11 @@ function App() {
             center={[22.5937, 78.9629]} 
             zoom={5} 
             scrollWheelZoom={true} 
-            preferCanvas={true} // Must be enabled
+            preferCanvas={true} // Essential
             style={{ height: "100%", width: "100%", background: '#000' }}
           >
             <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" attribution='&copy; CARTO' />
             
-            {/* The Optimized Layer */}
             <OptimizedMapLayer points={mapPoints} />
 
             {result && (
