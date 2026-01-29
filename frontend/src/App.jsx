@@ -20,11 +20,10 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 
 const formatText = (text) => text ? text.toString().replace(/_/g, ' ') : "";
 
-// --- INDIA BOUNDS (The "Cage") ---
-// This defines the Southwest and Northeast corners of the viewable area.
+// --- INDIA BOUNDS ---
 const INDIA_BOUNDS = [
-  [6.0, 68.0],   // South West (Indian Ocean)
-  [37.5, 97.5]   // North East (Arunachal/China Border)
+  [6.0, 68.0],   
+  [37.5, 97.5]   
 ];
 
 // --- COMPONENTS ---
@@ -110,13 +109,28 @@ const OptimizedMapLayer = ({ points }) => {
 
         const marker = L.circleMarker([pt.latitude, pt.longitude], {
           renderer: rendererRef.current,
-          radius: 2,
+          radius: 4, // Made slightly bigger to be easier to click
           color: color,
           fillColor: color,
           fillOpacity: 0.8,
           stroke: false, 
-          interactive: false 
+          interactive: true // CHANGED: Must be true for clicks to work
         });
+
+        // CHANGED: Bind Popup with details
+        marker.bindPopup(`
+          <div style="font-family: sans-serif; min-width: 150px;">
+            <h3 style="margin: 0 0 5px 0; color: #333;">${pt.name}</h3>
+            <div style="font-size: 14px; margin-bottom: 3px;"><strong>Score:</strong> <span style="color:${color}; font-weight:bold;">${pt.health_score}</span></div>
+            <div style="font-size: 12px; color: #666;">
+              Age: ${pt.age} | ${pt.gender}<br/>
+              Job: ${pt.occupation}<br/>
+              Loc: ${pt.district.replace(/_/g, ' ')}<br/>
+              Status: <strong>${pt.auth_status}</strong>
+            </div>
+          </div>
+        `);
+
         markers.push(marker);
       });
 
@@ -204,13 +218,12 @@ function App() {
         </div>
 
         <div className="card" style={{ padding: 0, overflow: 'hidden', background: '#101010', backdropFilter: 'none' }}>
-          {/* UPDATED MAP CONTAINER */}
           <MapContainer 
             center={[22.5937, 78.9629]} 
             zoom={5}
-            minZoom={5}              // Prevent zooming out to world view
-            maxBounds={INDIA_BOUNDS} // Restrict panning
-            maxBoundsViscosity={1.0} // Hard bounce on edges
+            minZoom={5}
+            maxBounds={INDIA_BOUNDS}
+            maxBoundsViscosity={1.0}
             scrollWheelZoom={true} 
             preferCanvas={true} 
             style={{ height: "100%", width: "100%", background: '#000' }}

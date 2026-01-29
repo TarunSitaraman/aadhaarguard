@@ -10,12 +10,10 @@ import sys
 try:
     from backend.sms_manager import send_sms_nudge 
 except ImportError:
-    # Fallback if sms_manager.py is missing
     def send_sms_nudge(*args): return False
 
 app = FastAPI(title="Aadhaar Health-Score API")
 
-# CORS - ALLOW ALL (Safe for Hackathon/Demo)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -91,8 +89,11 @@ def get_map_data():
     if not os.path.exists(data_path): return []
     try:
         df = pd.read_csv(data_path)
-        # Return only essential columns to keep payload small
-        map_df = df[['latitude', 'longitude', 'health_score', 'district']]
+        # CHANGED: Added detail columns for the popups
+        map_df = df[[
+            'latitude', 'longitude', 'health_score', 'district', 
+            'name', 'age', 'occupation', 'gender', 'auth_status'
+        ]]
         return map_df.to_dict(orient="records")
     except Exception as e:
         print(f"Error serving map data: {e}")
